@@ -11,8 +11,8 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 1440  # Tiempo de expiración del token, un dia
 
 router = APIRouter(
-    prefix="/users",
-    tags=["users"]
+    prefix="/auth",
+    tags=["auth"]
 )
 
 # Modelo para el registro
@@ -27,9 +27,10 @@ class LoginRequest(BaseModel):
 
 # Modelo para la respuesta de autenticación
 class TokenResponse(BaseModel):
+    user_id: int
     access_token: str
     token_type: str
-
+    
 # Endpoint: Registro de usuario
 @router.post("/register")
 async def register_user(
@@ -39,7 +40,6 @@ async def register_user(
     """
     Registra un nuevo usuario.
     """
-
     user_service = UserService(session)
     user = await user_service.create_user(register_data.username, register_data.password)
     return {"id": user.id, "username": user.username}
@@ -53,7 +53,6 @@ async def login_user(
     """
     Autentica al usuario y genera un token JWT.
     """
-
     user_service = UserService(session)
     user = await user_service.authenticate_user(login_data.username, login_data.password)
     
@@ -64,4 +63,4 @@ async def login_user(
         SECRET_KEY,
         algorithm=ALGORITHM
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {"user_id": user.id, "access_token": access_token, "token_type": "bearer"}

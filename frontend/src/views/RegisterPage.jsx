@@ -1,19 +1,46 @@
 import React, { useState } from "react";
 import { UserPlus } from "lucide-react";
+import { registerUser } from "../services/registerService";
+import { useNavigate } from "react-router-dom";
 
 const RegisterPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically handle the registration logic
-    console.log("Registration attempt with:", {
-      username,
-      password,
-      confirmPassword,
-    });
+
+    // Validación: contraseñas deben coincidir
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+
+    // Llamar al servicio de registro
+    try {
+      setError(null); // Limpiar errores anteriores
+      const response = await registerUser(username, password);
+      setSuccessMessage("Registration successful! You can now log in.");
+      setUsername(""); // Resetear el formulario
+      setPassword("");
+      setConfirmPassword("");
+
+      // Redirigir al login después de 2 segundos
+      setTimeout(() => {
+        navigate("/auth/login");
+      }, 500);
+    } catch (err) {
+      setError(err); // Mostrar el error si falla el registro
+    }
+  };
+
+  const handleBackToLogin = () => {
+    navigate("/auth/login"); // Redirigir al login al presionar el botón
   };
 
   return (
@@ -26,6 +53,16 @@ const RegisterPage = () => {
           </h1>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-100 text-red-700 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+          {successMessage && (
+            <div className="bg-green-100 text-green-700 p-3 rounded-md">
+              {successMessage}
+            </div>
+          )}
           <div>
             <label
               htmlFor="username"
@@ -80,6 +117,15 @@ const RegisterPage = () => {
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Register
+            </button>
+          </div>
+          <div>
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={handleBackToLogin}
+            >
+              Back to Login
             </button>
           </div>
         </form>

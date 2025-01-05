@@ -2,20 +2,22 @@ import React, { useState, useEffect, useCallback } from "react";
 import MessageList from "../components/Chat/MessageList";
 import ChatInput from "../components/Chat/ChatInput";
 import ChatHeader from "../components/Chat/ChatHeader";
-import { getMessages } from "../services/messageService";
 import Navbar from "../components/Chat/Navbar";
+import { getMessages } from "../services/messageService";
 
 const ChatPage = () => {
   const [clientId] = useState(() => Math.floor(new Date().getTime() / 1000));
   const [webSocket, setWebSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
-  const [chats, setChats] = useState([
-    { id: 1, title: "Chat 1" },
-    { id: 2, title: "Chat 2" },
-    // Agrega más chats según sea necesario
-  ]);
   const [selectedChat, setSelectedChat] = useState(null);
+
+  // Manejar la selección de un chat
+  const handleSelectChat = (chatId) => {
+    setSelectedChat(chatId);
+    // Aquí puedes agregar lógica para cargar los mensajes específicos del chat seleccionado
+    console.log(`Selected chat ID: ${chatId}`);
+  };
 
   // Función para cargar mensajes desde el backend cuando se monta el componente
   useEffect(() => {
@@ -90,30 +92,10 @@ const ChatPage = () => {
     }
   }, [webSocket, inputMessage, clientId]);
 
-  const handleSelectChat = (chatId) => {
-    setSelectedChat(chatId);
-    // Aquí puedes agregar lógica para cargar los mensajes del chat seleccionado
-  };
-
-  const handleNewChat = () => {
-    // Lógica para crear un nuevo chat
-    const newChat = { id: chats.length + 1, title: `Chat ${chats.length + 1}` };
-    setChats([...chats, newChat]);
-    setSelectedChat(newChat.id);
-  };
-
-  const handleLogout = () => {
-    // Lógica para cerrar sesión
-    console.log("Cerrar sesión");
-  };
-
   return (
     <div className="flex h-screen bg-gray-100">
       <Navbar
-        chats={chats}
         onSelectChat={handleSelectChat}
-        onNewChat={handleNewChat}
-        onLogout={handleLogout}
       />
       <div className="flex-1 flex flex-col">
         <ChatHeader clientId={clientId} />

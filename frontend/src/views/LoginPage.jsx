@@ -1,14 +1,36 @@
 import React, { useState } from "react";
 import { LogIn } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { loginUser } from "../services/loginService";
 
 const LoginPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState(null);
 
-  const handleSubmit = (e) => {
+  const navigate = useNavigate();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Here you would typically handle the login logic
-    console.log("Login attempt with:", { username, password });
+
+    try {
+      setError(null); // Limpiar errores anteriores
+      const data = await loginUser(username, password); // Llamada al servicio
+      console.log("Login successful:");
+      setUsername(""); 
+      setPassword("");
+
+      // Redirigir al login después de 2 segundos
+      setTimeout(() => {
+        navigate("/chats");
+      }, 500);
+    } catch (err) {
+      setError("Incorrect Credentials"); // Mostrar mensaje de error
+    }
+  };
+
+  const handleBackToRegister = () => {
+    navigate("/auth/register"); // Redirigir al register al presionar el botón
   };
 
   return (
@@ -21,6 +43,11 @@ const LoginPage = () => {
           </h1>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-100 text-red-700 p-3 rounded-md">
+              {error}
+            </div>
+          )}
           <div>
             <label
               htmlFor="username"
@@ -59,6 +86,16 @@ const LoginPage = () => {
               className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
               Sign In
+            </button>
+          </div>
+          <div>
+            <p>don't have an account? </p>
+            <button
+              type="submit"
+              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              onClick={handleBackToRegister}
+            >
+              Register
             </button>
           </div>
         </form>

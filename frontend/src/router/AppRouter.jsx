@@ -7,16 +7,16 @@ import RegisterPage from '../views/RegisterPage';
 const AppRouter = () => (
     <Routes>  
         {/* Redireccion a / */}
-        <Route path="*" element={<Navigate to="/" />} />
+        <Route path="*" element={<Navigate to="/auth/login" />} />
 
         {/* Login */}
-        <Route path='/Login' element={<LoginPage />} />
+        <Route path='/auth/login' element={<LoginPage />} />
 
         {/* Register */}
-        <Route path='/Register' element={<RegisterPage />} />
+        <Route path='/auth/register' element={<RegisterPage />} />
 
         {/* Ruta inicial */}
-        <Route path="/" element={<ChatPage />} />
+        <Route path="/chats" element={<ChatPage />} />
 
     </Routes>
 );

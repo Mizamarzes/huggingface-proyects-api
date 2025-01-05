@@ -1,39 +1,37 @@
-from typing import List
-from fastapi import WebSocket
-import json
-from datetime import datetime
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
+from models.chat import Chat
 
-class ChatService:
-    def __init__(self):
-        self.active_connections: List[WebSocket] = []
+class ChatDBService:
+    def __init__(self, session: AsyncSession):
+        self.session = session
 
-    async def connect(self, websocket: WebSocket):
-        await websocket.accept()
-        self.active_connections.append(websocket)
-    
-    def disconnect(self, websocket: WebSocket):
-        if websocket in self.active_connections:
-            self.active_connections.remove(websocket)
-    
-    async def send_personal_message(self, message: str, websocket: WebSocket):
-        await websocket.send_text(message)
-    
-    async def broadcast_except_sender(self, message: str, sender: WebSocket):
-        for connection in self.active_connections:
-            if connection != sender:
-                await connection.send_text(message)
+    async def create_chat(self, user_id: int, name: str):
+        """
+        Crea un nuevo chat asociado a un usuario.
+        """
+        chat = Chat(user_id=user_id, name=name)
+        self.session.add(chat)
+        await self.session.commit()
+        await self.session.refresh(chat)
+        return chat
 
-    async def broadcast_to_all(self, message: str):
-        for connection in self.active_connections:
-            await connection.send_text(message)
+    async def get_chats_by_user(self, user_id: int):
+        """
+        Obtiene todos los chats asociados a un usuario.
+        """
+        result = await self.session.execute(
+            select(Chat).where(Chat.user_id == user_id).order_by(Chat.created_at.desc())
+        )
+        chats = result.scalars().all()
+        return [chat.to_dict() for chat in chats]
 
-    async def format_message(self, client_id: int, message: str):
-        return {
-            "time": datetime.now().strftime("%H:%M"),
-            "clientId": client_id,
-            "message": message
-        }
-
-    async def send_offline_message(self, client_id: int, websocket: WebSocket):
-        offline_message = await self.format_message(client_id, "Offline")
-        await self.broadcast_except_sender(json.dumps(offline_message), websocket)
+    async def get_chat_by_id(self, user_id: int, chat_id: int):
+        """
+        Obtiene un chat específico por ID, asegurándose de que pertenece al usuario.
+        """
+        result = await self.session.execute(
+            select(Chat).where(and_(Chat.id == chat_id, Chat.user_id == user_id))
+        )
+        chat = result.scalar()
+        return chat.to_dict() if chat else None

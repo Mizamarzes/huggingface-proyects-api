@@ -3,12 +3,19 @@ import MessageList from "../components/Chat/MessageList";
 import ChatInput from "../components/Chat/ChatInput";
 import ChatHeader from "../components/Chat/ChatHeader";
 import { getMessages } from "../services/messageService";
+import Navbar from "../components/Chat/Navbar";
 
 const ChatPage = () => {
   const [clientId] = useState(() => Math.floor(new Date().getTime() / 1000));
   const [webSocket, setWebSocket] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
+  const [chats, setChats] = useState([
+    { id: 1, title: "Chat 1" },
+    { id: 2, title: "Chat 2" },
+    // Agrega más chats según sea necesario
+  ]);
+  const [selectedChat, setSelectedChat] = useState(null);
 
   // Función para cargar mensajes desde el backend cuando se monta el componente
   useEffect(() => {
@@ -83,11 +90,36 @@ const ChatPage = () => {
     }
   }, [webSocket, inputMessage, clientId]);
 
+  const handleSelectChat = (chatId) => {
+    setSelectedChat(chatId);
+    // Aquí puedes agregar lógica para cargar los mensajes del chat seleccionado
+  };
+
+  const handleNewChat = () => {
+    // Lógica para crear un nuevo chat
+    const newChat = { id: chats.length + 1, title: `Chat ${chats.length + 1}` };
+    setChats([...chats, newChat]);
+    setSelectedChat(newChat.id);
+  };
+
+  const handleLogout = () => {
+    // Lógica para cerrar sesión
+    console.log("Cerrar sesión");
+  };
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-      <div className="w-full max-w-3xl h-[600px] bg-white rounded-lg shadow-xl overflow-hidden flex flex-col">
+    <div className="flex h-screen bg-gray-100">
+      <Navbar
+        chats={chats}
+        onSelectChat={handleSelectChat}
+        onNewChat={handleNewChat}
+        onLogout={handleLogout}
+      />
+      <div className="flex-1 flex flex-col">
         <ChatHeader clientId={clientId} />
-        <MessageList messages={messages} clientId={clientId} />
+        <div className="flex-1 overflow-hidden">
+          <MessageList messages={messages} clientId={clientId} />
+        </div>
         <ChatInput
           message={inputMessage}
           setMessage={setInputMessage}

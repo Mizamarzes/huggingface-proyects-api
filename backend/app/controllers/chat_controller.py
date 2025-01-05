@@ -1,52 +1,59 @@
-from fastapi import WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from services.chat_service import ChatService
-from services.message_service import MessageService
-from datetime import datetime
-import json
+from typing import List
+from config.db import get_db
+from services.chat_service import ChatDBService
+from pydantic import BaseModel
 
-async def handle_websocket(websocket: WebSocket, client_id: int, session: AsyncSession):
-    chat_service = ChatService()
-    message_service = MessageService(session)
+router = APIRouter(
+    prefix="/chats",
+    tags=["chats"]
+)
 
-    await chat_service.connect(websocket)
+# Definir el modelo de entrada para crear un chat
+class CreateChatRequest(BaseModel):
+    user_id: int
+    name: str
 
-    # Enviar mensajes recientes cuando el cliente se conecta
-    recent_messages = await message_service.get_recent_messages()
-    for message in recent_messages:
-        await websocket.send_text(json.dumps(message))
+# Endpoint crea un nuevo chat
+@router.post("/")
+async def create_chat(
+    chat_data: CreateChatRequest,
+    session: AsyncSession = Depends(get_db)
+):
+    """
+    Crea un nuevo chat.
+    """
+    chat_service = ChatDBService(session)
+    chat = await chat_service.create_chat(chat_data.user_id, chat_data.name)
+    return chat
 
-    try:
-        while True:
-            data = await websocket.receive_text()
-            
-            try:
-                message_data = json.loads(data)
-            except json.JSONDecodeError:
-                message_data = {
-                    "clientId": client_id,
-                    "message": data
-                }
+# Endpoint obtiene todos los chats del usuario con el user_id 
+@router.get("/{user_id}", response_model=List[dict])
+async def get_chats_by_user(
+    user_id: int,
+    session: AsyncSession = Depends(get_db)
+):
+    """
+    Obtiene todos los chats de un usuario.
+    """
+    chat_service = ChatDBService(session)
+    chats = await chat_service.get_chats_by_user(user_id)
+    if not chats:
+        raise HTTPException(status_code=404, detail="No chats found for this user.")
+    return chats
 
-            # Guardar mensaje en la base de datos
-            if message_data.get("message") != "Connect":
-                saved_message = await message_service.create_message(
-                    client_id=message_data["clientId"],
-                    message=message_data["message"]
-                )
-                
-                # Broadcast del mensaje
-                await chat_service.broadcast_except_sender(
-                    json.dumps(saved_message.to_dict()),
-                    websocket
-                )
-                
-    except WebSocketDisconnect:
-        chat_service.disconnect(websocket)
-        # Opcional: Notificar solo a los clientes conectados, pero no guardar en la base de datos
-        offline_message = {
-            "clientId": client_id,
-            "message": "Offline",
-            "time": datetime.now().strftime("%H:%M")
-        }
-        await chat_service.broadcast_except_sender(json.dumps(offline_message), websocket)
+@router.get("/{user_id}/{chat_id}")
+async def get_chat_by_id(
+    user_id: int,
+    chat_id: int,
+    session: AsyncSession = Depends(get_db)
+):
+    """
+    Obtiene un chat específico por su ID.
+    """
+    chat_service = ChatDBService(session)
+    chat = await chat_service.get_chat_by_id(user_id, chat_id)
+    if not chat:
+        raise HTTPException(status_code=404, detail="Chat not found or access denied.")
+    return chat

@@ -2,8 +2,12 @@ from fastapi import FastAPI, WebSocket, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.middleware.cors import CORSMiddleware
 from config.db import init_db, get_db
-from controllers.chat_controller import handle_websocket
+from controllers.websocket_chat_controller import handle_websocket
+
+# Importar los routers desde los controladores
 from controllers.message_controller import router as message_router
+from controllers.chat_controller import router as chat_router
+from controllers.user_controller import router as user_router
 
 # Crear la instancia principal de FastAPI
 app = FastAPI()
@@ -17,8 +21,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Registrar el router de mensajes
+# Registrar los routers
 app.include_router(message_router)
+app.include_router(chat_router)
+app.include_router(user_router)
 
 # Endpoint de prueba para verificar que el servidor está funcionando
 @app.get("/")
@@ -40,7 +46,10 @@ async def websocket_endpoint(
 # Inicialización de la base de datos al arrancar el servidor
 @app.on_event("startup")
 async def startup_event():
-    """
-    Este evento se ejecuta al iniciar el servidor. Se asegura de que las tablas se creen.
-    """
-    await init_db()
+    try:
+        print("Initializing database...")
+        await init_db()
+        print("Database initialized successfully.")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
+

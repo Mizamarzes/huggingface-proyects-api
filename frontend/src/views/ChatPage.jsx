@@ -11,31 +11,41 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState("");
   const [selectedChat, setSelectedChat] = useState(null);
+  const user_id = localStorage.getItem("user_id"); // Obtener el userId del localStorage.
 
-  // Manejar la selección de un chat
-  const handleSelectChat = (chatId) => {
-    setSelectedChat(chatId);
-    // Aquí puedes agregar lógica para cargar los mensajes específicos del chat seleccionado
-    console.log(`Selected chat ID: ${chatId}`);
+  // Manejar la seleccion del chat
+  const handleSelectChat = async (chatId) => {
+    setSelectedChat(chatId); // Actualiza el estado del chat seleccionado.
+
+    try {
+      const chatMessages = await getMessages(user_id, chatId); // Obtén los mensajes del backend.
+      setMessages(chatMessages); // Actualiza el estado con los mensajes del chat.
+    } catch (error) {
+      console.error(`Error loading messages for chat ${chatId}:`, error.message);
+    }
   };
 
-  // Función para cargar mensajes desde el backend cuando se monta el componente
-  useEffect(() => {
-    const fetchMessages = async () => {
+  const sendMessage = useCallback(async () => {
+    if (inputMessage.trim() && selectedChat) {
+      const messageData = {
+        chatId: selectedChat,
+        userId: parseInt(userId, 10), // Asegurarse de que userId es un entero
+        senderType: "user", // Asumimos que siempre es el usuario enviando
+        content: inputMessage,
+      };
+
       try {
-        const data = await getMessages(); // Obtener mensajes del backend
-        setMessages((prevMessages) => {
-          const uniqueMessages = [...data, ...prevMessages];
-          return uniqueMessages.sort((a, b) => new Date(a.time) - new Date(b.time));
-        });
-        
+        // Enviar el mensaje al backend
+        const newMessage = await createMessage(messageData);
+
+        // Actualizar mensajes en el estado local inmediatamente
+        setMessages((prevMessages) => [...prevMessages, newMessage]);
+        setInputMessage(""); // Limpiar el campo de entrada
       } catch (error) {
-        console.error("Error fetching messages:", error);
+        console.error("Error sending message:", error.message);
       }
-    };
-  
-    fetchMessages(); // Llamar a la función cuando el componente se monte
-  }, []);
+    }
+  }, [inputMessage, selectedChat, userId]);
 
   // Efecto para manejar la conexión WebSocket
   useEffect(() => {
@@ -69,28 +79,28 @@ const ChatPage = () => {
     };
   }, [clientId]);
 
-  const sendMessage = useCallback(() => {
-    if (
-      webSocket &&
-      webSocket.readyState === WebSocket.OPEN &&
-      inputMessage.trim()
-    ) {
-      const messageToSend = {
-        clientId: clientId,
-        message: inputMessage,
-        time: new Date().toLocaleTimeString(),
-      };
+  // const sendMessage = useCallback(() => {
+  //   if (
+  //     webSocket &&
+  //     webSocket.readyState === WebSocket.OPEN &&
+  //     inputMessage.trim()
+  //   ) {
+  //     const messageToSend = {
+  //       clientId: clientId,
+  //       message: inputMessage,
+  //       time: new Date().toLocaleTimeString(),
+  //     };
 
-      // **Actualizar mensajes en el estado local inmediatamente**
-      setMessages((prevMessages) => [...prevMessages, messageToSend]);
+  //     // **Actualizar mensajes en el estado local inmediatamente**
+  //     setMessages((prevMessages) => [...prevMessages, messageToSend]);
 
-      // Enviar el mensaje al WebSocket
-    webSocket.send(JSON.stringify(messageToSend));
+  //     // Enviar el mensaje al WebSocket
+  //   webSocket.send(JSON.stringify(messageToSend));
 
-    // Limpiar el campo de entrada
-    setInputMessage("");
-    }
-  }, [webSocket, inputMessage, clientId]);
+  //   // Limpiar el campo de entrada
+  //   setInputMessage("");
+  //   }
+  // }, [webSocket, inputMessage, clientId]);
 
   return (
     <div className="flex h-screen bg-gray-100">

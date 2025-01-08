@@ -1,31 +1,34 @@
 import axios from "axios";
 
-// Crear una instancia de Axios con la configuración base
-const api = axios.create({
-  baseURL: "http://localhost:8000", // URL base del backend
-  timeout: 10000, // Tiempo de espera para la petición (en ms)
-});
+const API_BASE_URL = "http://localhost:8000"; // Cambia según tu configuración
 
-// Función para obtener mensajes
-export const getMessages = async () => {
+// Obtener mensajes por usuario y chat
+export const getMessages = async (userId, chatId, limit = 10) => {
   try {
-    const response = await api.get("/messages");
+    const response = await axios.get(
+      `${API_BASE_URL}/messages/${userId}/${chatId}?limit=${limit}`
+    );
     return response.data;
   } catch (error) {
-    console.error("Error fetching messages:", error);
+    console.error(`Error fetching messages for user ${userId} and chat ${chatId}:`, error);
     throw error;
   }
 };
 
-// Puedes añadir más funciones para otros endpoints, por ejemplo:
-export const sendMessageToBackend = async (messageData) => {
+// Crear un nuevo mensaje
+export const createMessage = async ({ chatId, userId, senderType, content }) => {
   try {
-    const response = await api.post("/messages", messageData);
+    const response = await axios.post(`${API_BASE_URL}/messages`, {
+      chat_id: chatId,
+      user_id: userId,
+      sender_type: senderType,
+      content,
+    });
     return response.data;
   } catch (error) {
-    console.error("Error sending message:", error);
+    console.error("Error creating message:", error.response?.data || error.message);
     throw error;
   }
 };
 
-export default api;
+export default axios;
